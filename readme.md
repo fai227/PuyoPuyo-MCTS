@@ -28,7 +28,6 @@ cd "/Users/hayat/Documents/GitHub/PuyoPuyo-MCTS/src/" \
 
 # 入力
 - 乱数計算回数(1つのブランチについて，この484倍計算される)
-- 
 - 1列目(下から)
 - 2列目(下から)
 - 3列目(下から)
