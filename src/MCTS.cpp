@@ -3,15 +3,15 @@
 #include <stdlib.h> // 文字数値変換
 #include <vector>   // 可変超配列
 
-#include "utility.cpp"
-#include "node.cpp"
-
 using namespace std;
 
 // 定数
 const int BOARD_HEIGHT = 13;
 const int BOARD_WIDTH = 6;
 const int ACTION_LENGTH = 22;
+
+#include "utility.cpp"
+#include "node.cpp"
 
 // グローバル変数
 int mcts_duration_ms;
@@ -109,8 +109,8 @@ int main(int argc, char *argv[])
     parse_arguments(argc, argv);
 
     // MCTS();
-    Node tmpNode = Node();
-    cout << tmpNode.getC();
+    // Node tmpNode = Node();
+    // cout << tmpNode.test();
 
     // 結果を標準出力
     return 0;

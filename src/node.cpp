@@ -1,15 +1,23 @@
 class Node {
     private:
-        char c;
+        int first_empties[BOARD_WIDTH];
 
     public:
         // コンストラクタ
         Node() {
-            c = 'H';
+
         }
 
-        char getC() {
-            return c;
+        void SetAsRoot() {
+
+        }
+
+        void SetAsChild(Node parent) {
+
+        }
+
+        int test() {
+            return first_empties[0];
         }
 
 };
