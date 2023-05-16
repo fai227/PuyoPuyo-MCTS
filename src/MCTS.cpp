@@ -10,6 +10,10 @@ const int BOARD_HEIGHT = 13;
 const int BOARD_WIDTH = 6;
 const int ACTION_LENGTH = 22;
 
+const long long first_infinity = 10000000000000;
+const long long second_infinity = 100000000000;
+const long long simulation_infinity = 1000000000;
+
 #include "utility.cpp"
 #include "node.cpp"
 
@@ -21,6 +25,7 @@ int original_board[BOARD_WIDTH][BOARD_HEIGHT];
 int next_puyos[2];
 int next_next_puyos[2];
 int tetris_height;
+int now_garbage;
 vector<int> garbages;
 int action_votes[ACTION_LENGTH];
 
@@ -55,8 +60,10 @@ void parse_arguments(int argc, char *argv[])
     // テトリスの高さ
     tetris_height = atoi(argv[14]);
 
+    now_garbage = atoi(argv[15]);
+
     // おじゃま計算
-    for (int p = 15; p < argc; p++)
+    for (int p = 16; p < argc; p++)
     {
         garbages.push_back(atoi(argv[p]));
     }
@@ -64,51 +71,94 @@ void parse_arguments(int argc, char *argv[])
 
 void MCTS()
 {
-    // 子を展開
+    // 探索開始ノード設定
+    Node top_node;
+    int top_garbage = now_garbage;
+    top_node.SetAsRoot(original_board, tetris_height, top_garbage);
+
+    // 2手目以降のシミュレーション対象になるリスト
+    vector<Node> simulation_nodes;
+
+    // 得点計算用のリストを0で初期化
+    long long action_scores[ACTION_LENGTH];
+    for (int i = 0; i < ACTION_LENGTH; i++)
+        action_scores[i] = 0;
+
+    // 1手目を展開
     for (int first_action = 0; first_action < ACTION_LENGTH; first_action++)
     {
+        Node e1;
+        e1.SetAsChild(top_node, first_action, first_action, garbages.at(0));
+
+        // 終了判定
+        if (e1.isGameEnded())
+        {
+        }
+
+        // 2手目を展開
+        for (int second_action = 0; second_action < ACTION_LENGTH; second_action++)
+        {
+            Node e2;
+            e2.SetAsChild(e1, second_action, first_action, garbages.at(1));
+
+            // 終了判定
+            if (e2.isGameEnded())
+            {
+            }
+
+            // 探索キューに追加
+            simulation_nodes.push_back(e2);
+        }
     }
+
+    // 平均計算用の得点リストを0で初期化
+    long long simulation_scores[simulation_nodes.size()];
+    for (int i = 0; i < simulation_nodes.size(); i++)
+        simulation_scores[i] = 0;
 
     // 時間の限り繰り返す
     int counter;
     chrono::steady_clock::time_point start_time = chrono::steady_clock::now();
-    for (counter = 0; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
+    for (counter = 1; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
     {
-        for (int s = 0; s < 10000; s++)
+        for (int i = 0; i < simulation_nodes.size(); i++)
         {
-            int tmp = 0;
-            tmp++;
-            tmp <<= 2;
+            Node simulation_node = simulation_nodes[i];
+            long long score = 0;
+
+            // ゲーム終了判定になるまで繰り返す
+            while (!simulation_node.isGameEnded())
+            {
+            }
+
+            // スコアを登録
+            simulation_scores[i] += score;
         }
     }
-    std::cout << counter;
-}
 
-// #region 便利関数
-int *copy_board(int board[BOARD_WIDTH][BOARD_HEIGHT])
-{
-    int copied_board[BOARD_WIDTH][BOARD_HEIGHT];
-    for (int x = 0; x < BOARD_WIDTH; x++)
+    // シミュレーションの得点を計算し反映する
+    for (int i = 0; i < simulation_nodes.size(); i++)
     {
-        for (int y = 0; y < BOARD_HEIGHT; y++)
-        {
-            copied_board[x][y] = board[x][y];
-        }
-    }
-    return *copied_board;
-}
+        Node simulation_node = simulation_nodes[i];
+        int action = simulation_node.get_top_action();
 
-int get_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
-{
+        // シミュレーションの探索結果を平均してスコアに登録
+        action_scores[action] = simulation_scores[i] / counter;
+    }
+
+    // スコアを表示
+    for (int i = 0; i < ACTION_LENGTH; i++)
+    {
+        cout << action_scores[i];
+    }
 }
-// #endregion
 
 int main(int argc, char *argv[])
 {
     // 引数をパースする
     parse_arguments(argc, argv);
 
-    // MCTS();
+    MCTS();
     // Node tmpNode = Node();
     // cout << tmpNode.test();
 
