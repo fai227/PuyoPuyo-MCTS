@@ -10,9 +10,9 @@ const int BOARD_HEIGHT = 13;
 const int BOARD_WIDTH = 6;
 const int ACTION_LENGTH = 22;
 
-const long long first_infinity = 10000000000000;
-const long long second_infinity = 100000000000;
-const long long simulation_infinity = 1000000000;
+const long long FIRST_INFINITY = 10000000000000;
+const long long SECOND_INFINITY = 100000000000;
+const long long SIMULATION_INFINITY = 1000000000;
 
 #include "utility.cpp"
 #include "node.cpp"
@@ -74,7 +74,7 @@ void MCTS()
     // 探索開始ノード設定
     Node top_node;
     int top_garbage = now_garbage;
-    top_node.SetAsRoot(original_board, tetris_height, top_garbage);
+    top_node.set_as_root(original_board, tetris_height, top_garbage);
 
     // 2手目以降のシミュレーション対象になるリスト
     vector<Node> simulation_nodes;
@@ -88,22 +88,26 @@ void MCTS()
     for (int first_action = 0; first_action < ACTION_LENGTH; first_action++)
     {
         Node e1;
-        e1.SetAsChild(top_node, first_action, first_action, garbages.at(0));
+        e1.set_as_child(top_node, first_action, first_action, garbages.at(0));
 
         // 終了判定
-        if (e1.isGameEnded())
+        if (e1.is_game_ended())
         {
+            // 勝っている時は正の評価，負けている時は負の評価
+            action_scores[first_action] += e1.is_win() ? FIRST_INFINITY : -FIRST_INFINITY;
         }
 
         // 2手目を展開
         for (int second_action = 0; second_action < ACTION_LENGTH; second_action++)
         {
             Node e2;
-            e2.SetAsChild(e1, second_action, first_action, garbages.at(1));
+            e2.set_as_child(e1, second_action, first_action, garbages.at(1));
 
             // 終了判定
-            if (e2.isGameEnded())
+            if (e2.is_game_ended())
             {
+                // 勝っている時は正の評価，負けている時は負の評価
+                action_scores[first_action] += e1.is_win() ? SECOND_INFINITY : -SECOND_INFINITY;
             }
 
             // 探索キューに追加
@@ -127,9 +131,12 @@ void MCTS()
             long long score = 0;
 
             // ゲーム終了判定になるまで繰り返す
-            while (!simulation_node.isGameEnded())
+            while (!simulation_node.is_game_ended())
             {
             }
+
+            // 勝っている時は正の評価，負けている時は負の評価
+            simulation_scores[i] += simulation_node.is_win() ? SIMULATION_INFINITY : -SIMULATION_INFINITY;
 
             // スコアを登録
             simulation_scores[i] += score;
@@ -150,7 +157,9 @@ void MCTS()
     for (int i = 0; i < ACTION_LENGTH; i++)
     {
         cout << action_scores[i];
+        cout << "\n";
     }
+    cout << counter << " times calculated";
 }
 
 int main(int argc, char *argv[])
