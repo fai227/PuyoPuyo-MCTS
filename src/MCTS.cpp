@@ -123,7 +123,7 @@ void MCTS()
     // 時間の限り繰り返す
     int counter;
     chrono::steady_clock::time_point start_time = chrono::steady_clock::now();
-    for (counter = 1; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
+    for (counter = 0; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
     {
         for (int i = 0; i < simulation_nodes.size(); i++)
         {
@@ -133,6 +133,7 @@ void MCTS()
             // ゲーム終了判定になるまで繰り返す
             while (!simulation_node.is_game_ended())
             {
+                // 全ての手を展開する
             }
 
             // 勝っている時は正の評価，負けている時は負の評価

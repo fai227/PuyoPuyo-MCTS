@@ -30,7 +30,7 @@ public:
 
     bool is_win()
     {
-        return true; // win;
+        return false; // win;
     }
 
     int get_top_action()
