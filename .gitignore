@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Other Executables
+src/MCTS
+src/MCTS.exe
+MCTS
+MCTS.exe
