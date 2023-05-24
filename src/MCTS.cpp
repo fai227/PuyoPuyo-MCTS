@@ -83,7 +83,6 @@ void MCTS()
 {
     // 探索開始ノード設定
     Node *top_node = new Node();
-    int top_garbage = now_garbage;
     top_node->set_as_root(original_board, tetris_height);
 
     // 2手目以降のシミュレーション対象になるリスト
@@ -91,6 +90,7 @@ void MCTS()
 
     // 乱数生成用
     uniform_int_distribution<int> get_random_action(0, top_priority_moves - 1);
+    uniform_int_distribution<int> get_random_puyo(1, 4);
 
     // 得点計算用のリストを0で初期化
     long long action_scores[ACTION_LENGTH];
@@ -101,7 +101,7 @@ void MCTS()
     for (int first_action = 0; first_action < ACTION_LENGTH; first_action++)
     {
         Node *e1 = new Node();
-        e1->set_as_child(top_node, first_action, garbages.at(0), );
+        e1->set_as_child(top_node, first_action, garbages.at(0), next_puyos);
         e1->top_action = first_action;
 
         // 終了判定
@@ -116,7 +116,7 @@ void MCTS()
         for (int second_action = 0; second_action < ACTION_LENGTH; second_action++)
         {
             Node *e2 = new Node();
-            e2->set_as_child(e1, second_action, garbages.at(1));
+            e2->set_as_child(e1, second_action, garbages.at(1), next_next_puyos);
 
             // 終了判定
             if (e2->gameover)
@@ -159,6 +159,9 @@ void MCTS()
                 vector<Node *> top_moves;
                 for (int action = 0; action < ACTION_LENGTH; action++)
                 {
+                    // ランダムなぷよの生成
+                    int random_puyo[2] = {get_random_puyo(mt), get_random_puyo(mt)};
+
                     // 手を置く
                     Node *next_move = new Node();
                     next_move->set_as_child(simulation_node, action, garbage);
