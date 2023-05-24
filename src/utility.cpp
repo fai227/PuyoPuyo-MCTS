@@ -8,10 +8,13 @@ char itoc(int i)
     return i + '0';
 }
 
-int calculate_score(int board[BOARD_HEIGHT][BOARD_WIDTH])
+void copy_board(int original_board[BOARD_WIDTH][BOARD_HEIGHT], int copied_board[BOARD_WIDTH][BOARD_HEIGHT])
 {
-    int chain = 0;
-    int score = 0;
-
-    return 1;
+    for (int x = 0; x < BOARD_WIDTH; x++)
+    {
+        for (int y = 0; y < BOARD_HEIGHT; y++)
+        {
+            copied_board[x][y] = original_board[x][y];
+        }
+    }
 }
