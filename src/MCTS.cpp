@@ -2,6 +2,7 @@
 #include <chrono>   // 時間計測
 #include <stdlib.h> // 文字数値変換
 #include <vector>   // 可変超配列
+#include <utility>  // ペアー
 #include <random>   // ランダム
 
 using namespace std;
@@ -93,9 +94,7 @@ void MCTS()
     uniform_int_distribution<int> get_random_puyo(1, 4);
 
     // 得点計算用のリストを0で初期化
-    long long action_scores[ACTION_LENGTH];
-    for (int i = 0; i < ACTION_LENGTH; i++)
-        action_scores[i] = 0;
+    long long action_scores[ACTION_LENGTH] = {0};
 
     // 1手目を展開
     for (int first_action = 0; first_action < ACTION_LENGTH; first_action++)
@@ -164,7 +163,7 @@ void MCTS()
 
                     // 手を置く
                     Node *next_move = new Node();
-                    next_move->set_as_child(simulation_node, action, garbage);
+                    next_move->set_as_child(simulation_node, action, garbage, random_puyo);
 
                     // 最善手なら残す
                     // リストが満杯のとき
@@ -258,6 +257,17 @@ int main(int argc, char *argv[])
 
     Node *top_node = new Node();
     top_node->set_as_root(original_board, tetris_height);
+
+    top_node->board[0][10] = 2;
+    show_board(top_node->board);
+
+    drop_puyos(top_node->board);
+    show_board(top_node->board);
+
+    int score = calculate_score(top_node->board);
+    show_board(top_node->board);
+
+    cout << score;
 
     // 正常終了
     return 0;
