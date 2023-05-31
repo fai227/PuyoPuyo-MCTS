@@ -1,3 +1,5 @@
+#pragma once
+
 int ctoi(char c)
 {
     return c - '0';
@@ -83,7 +85,7 @@ void drop_puyos(int board[BOARD_WIDTH][BOARD_HEIGHT])
     }
 }
 
-int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
+void calculate_score(Node *node)
 {
     int score = 0;
     int chain = 1;
@@ -107,8 +109,8 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                 if (checked_board[x][y])
                     continue;
 
-                int check_point = 0;           // 現在チェックしている場所
-                int check_color = board[x][y]; // チェックする色
+                int check_point = 0;                 // 現在チェックしている場所
+                int check_color = node->board[x][y]; // チェックする色
 
                 // 空白かおじゃまなら飛ばす
                 if (check_color == 0 || check_color == 5)
@@ -138,7 +140,7 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                     {
                         if (!checked_board[check_x + 1][check_y])
                         {
-                            if (board[check_x + 1][check_y] == check_color)
+                            if (node->board[check_x + 1][check_y] == check_color)
                             {
                                 pair<int, int> right_position(check_x + 1, check_y);
                                 check_queue.push_back(right_position);
@@ -151,7 +153,7 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                     {
                         if (!checked_board[check_x - 1][check_y])
                         {
-                            if (board[check_x - 1][check_y] == check_color)
+                            if (node->board[check_x - 1][check_y] == check_color)
                             {
                                 pair<int, int> left_position(check_x - 1, check_y);
                                 check_queue.push_back(left_position);
@@ -164,7 +166,7 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                     {
                         if (!checked_board[check_x][check_y + 1])
                         {
-                            if (board[check_x][check_y + 1] == check_color)
+                            if (node->board[check_x][check_y + 1] == check_color)
                             {
                                 pair<int, int> up_position(check_x, check_y + 1);
                                 check_queue.push_back(up_position);
@@ -177,7 +179,7 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                     {
                         if (!checked_board[check_x][check_y - 1])
                         {
-                            if (board[check_x][check_y - 1] == check_color)
+                            if (node->board[check_x][check_y - 1] == check_color)
                             {
                                 pair<int, int> down_position(check_x, check_y - 1);
                                 check_queue.push_back(down_position);
@@ -201,25 +203,25 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                         int check_x = check_position.first;
                         int check_y = check_position.second;
 
-                        board[check_x][check_y] = 0;
+                        node->board[check_x][check_y] = 0;
 
                         // 周りのおじゃまを消す
                         // 右
                         if (check_x < BOARD_WIDTH - 1)
-                            if (board[check_x + 1][check_y] == 5)
-                                board[check_x + 1][check_y] = 0;
+                            if (node->board[check_x + 1][check_y] == 5)
+                                node->board[check_x + 1][check_y] = 0;
                         // 左
                         if (check_x > 0)
-                            if (board[check_x - 1][check_y] == 5)
-                                board[check_x - 1][check_y] = 0;
+                            if (node->board[check_x - 1][check_y] == 5)
+                                node->board[check_x - 1][check_y] = 0;
                         // 上
                         if (check_y < BOARD_HEIGHT - 1)
-                            if (board[check_x][check_y + 1] == 5)
-                                board[check_x][check_y + 1] = 0;
+                            if (node->board[check_x][check_y + 1] == 5)
+                                node->board[check_x][check_y + 1] = 0;
                         // 下
                         if (check_y > 0)
-                            if (board[check_x][check_y - 1] == 5)
-                                board[check_x][check_y - 1] = 0;
+                            if (node->board[check_x][check_y - 1] == 5)
+                                node->board[check_x][check_y - 1] = 0;
                     }
                 }
             }
@@ -251,8 +253,8 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
         }
 
         // 全てのぷよを下に落とす
-        drop_puyos(board);
+        drop_puyos(node->board);
     }
 
-    return score;
+    node->score = score;
 }

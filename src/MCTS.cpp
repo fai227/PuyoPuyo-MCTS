@@ -21,9 +21,9 @@ const long long SECOND_INFINITY = 100000000000;
 const long long SIMULATION_INFINITY = 1000000000;
 const long long SURVIVAL_REWARD = 10000000;
 
+#include "node.cpp"
 #include "score.cpp"
 #include "utility.cpp"
-#include "node.cpp"
 
 // グローバル変数
 int mcts_duration_ms = 1000;
@@ -101,14 +101,21 @@ void MCTS()
     for (int first_action = 0; first_action < ACTION_LENGTH; first_action++)
     {
         Node *e1 = new Node();
-        e1->set_as_child(top_node, first_action, garbages.at(0), next_puyos);
+        bool can_place_first_action = e1->set_as_child(top_node, first_action, garbages.at(0), next_puyos);
         e1->top_action = first_action;
+
+        // 置けない場合は探索しない
+        if (!can_place_first_action)
+        {
+            action_scores[first_action] = FIRST_INFINITY;
+            continue;
+        }
 
         // 終了判定
         if (e1->gameover)
         {
             // 勝っている時は正の評価，負けている時は負の評価
-            action_scores[first_action] += e1->win ? FIRST_INFINITY : -FIRST_INFINITY;
+            action_scores[first_action] = e1->win ? FIRST_INFINITY : -FIRST_INFINITY;
             continue;
         }
 
@@ -116,13 +123,20 @@ void MCTS()
         for (int second_action = 0; second_action < ACTION_LENGTH; second_action++)
         {
             Node *e2 = new Node();
-            e2->set_as_child(e1, second_action, garbages.at(1), next_next_puyos);
+            bool can_place_second_action = e2->set_as_child(e1, second_action, garbages.at(1), next_next_puyos);
+
+            // 置けない場合は探索しない
+            if (!can_place_second_action)
+            {
+                action_scores[first_action] = SECOND_INFINITY;
+                continue;
+            }
 
             // 終了判定
             if (e2->gameover)
             {
                 // 勝っている時は正の評価，負けている時は負の評価
-                action_scores[first_action] += e1->win ? SECOND_INFINITY : -SECOND_INFINITY;
+                action_scores[first_action] = e1->win ? SECOND_INFINITY : -SECOND_INFINITY;
                 continue;
             }
 
@@ -162,7 +176,13 @@ void MCTS()
 
                     // 手を置く
                     Node *next_move = new Node();
-                    next_move->set_as_child(simulation_node, action, garbage, random_puyo);
+                    bool can_place = next_move->set_as_child(simulation_node, action, garbage, random_puyo);
+
+                    // 置けない場合は探索しない
+                    if (!can_place)
+                    {
+                        continue;
+                    }
 
                     // 最善手なら残す
                     // リストが満杯のとき
@@ -174,7 +194,6 @@ void MCTS()
                         // ランキングの最後より小さい場合はリストに入れずに継続
                         if (top_moves.back()->value > value)
                         {
-                            delete next_move;
                             continue;
                         }
 
@@ -263,10 +282,10 @@ int main(int argc, char *argv[])
     drop_puyos(top_node->board);
     show_board(top_node->board);
 
-    int score = calculate_score(top_node->board);
+    calculate_score(top_node);
     show_board(top_node->board);
 
-    cout << score;
+    cout << top_node->score;
 
     // 正常終了
     return 0;
