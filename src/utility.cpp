@@ -90,7 +90,11 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
 
     while (true)
     {
+        // 連鎖計算用
         bool is_chained = false;
+        bool colors[4] = {false};
+        int vanish_puyo = 0;
+        int connected_bonus = 0;
 
         // つながりチェック
         bool checked_board[BOARD_WIDTH][BOARD_HEIGHT] = {false}; // チェックしたかどうかを表す配列
@@ -120,18 +124,13 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
 
                 while (check_queue.size() > check_point)
                 {
-                    cout << check_queue.size() << ":" << check_point << "\n";
                     pair<int, int> check_position = check_queue.at(check_point);
                     check_point++;
 
                     int check_x = check_position.first;
                     int check_y = check_position.second;
 
-                    // 同じ色かをチェック
-                    if (board[check_x][check_y] != check_color)
-                        continue;
-
-                    // 同じ色であることを確認済み
+                    // チェック済みにして次を調べる
                     checked_board[check_x][check_y] = true;
 
                     // 右をチェックできるかチェック
@@ -139,8 +138,11 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                     {
                         if (!checked_board[check_x + 1][check_y])
                         {
-                            pair<int, int> right_position(check_x + 1, check_y);
-                            check_queue.push_back(right_position);
+                            if (board[check_x + 1][check_y] == check_color)
+                            {
+                                pair<int, int> right_position(check_x + 1, check_y);
+                                check_queue.push_back(right_position);
+                            }
                         }
                     }
 
@@ -149,8 +151,11 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                     {
                         if (!checked_board[check_x - 1][check_y])
                         {
-                            pair<int, int> left_position(check_x - 1, check_y);
-                            check_queue.push_back(left_position);
+                            if (board[check_x - 1][check_y] == check_color)
+                            {
+                                pair<int, int> left_position(check_x - 1, check_y);
+                                check_queue.push_back(left_position);
+                            }
                         }
                     }
 
@@ -159,8 +164,11 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                     {
                         if (!checked_board[check_x][check_y + 1])
                         {
-                            pair<int, int> up_position(check_x, check_y + 1);
-                            check_queue.push_back(up_position);
+                            if (board[check_x][check_y + 1] == check_color)
+                            {
+                                pair<int, int> up_position(check_x, check_y + 1);
+                                check_queue.push_back(up_position);
+                            }
                         }
                     }
 
@@ -169,16 +177,50 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
                     {
                         if (!checked_board[check_x][check_y - 1])
                         {
-                            pair<int, int> down_position(check_x, check_y - 1);
-                            check_queue.push_back(down_position);
+                            if (board[check_x][check_y - 1] == check_color)
+                            {
+                                pair<int, int> down_position(check_x, check_y - 1);
+                                check_queue.push_back(down_position);
+                            }
                         }
                     }
                 }
 
-                // 連鎖が起きた時
+                // 4つ以上連結があった場合
                 if (check_queue.size() >= 4)
                 {
-                    cout << "Chain occuered";
+                    // 連鎖計算用
+                    is_chained = true;
+                    colors[check_color - 1] = true;
+                    vanish_puyo += check_queue.size();
+                    connected_bonus += get_connected_score(check_queue.size());
+
+                    // ぷよを消す
+                    for (pair<int, int> check_position : check_queue)
+                    {
+                        int check_x = check_position.first;
+                        int check_y = check_position.second;
+
+                        board[check_x][check_y] = 0;
+
+                        // 周りのおじゃまを消す
+                        // 右
+                        if (check_x < BOARD_WIDTH - 1)
+                            if (board[check_x + 1][check_y] == 5)
+                                board[check_x + 1][check_y] = 0;
+                        // 左
+                        if (check_x > 0)
+                            if (board[check_x - 1][check_y] == 5)
+                                board[check_x - 1][check_y] = 0;
+                        // 上
+                        if (check_y < BOARD_HEIGHT - 1)
+                            if (board[check_x][check_y + 1] == 5)
+                                board[check_x][check_y + 1] = 0;
+                        // 下
+                        if (check_y > 0)
+                            if (board[check_x][check_y - 1] == 5)
+                                board[check_x][check_y - 1] = 0;
+                    }
                 }
             }
         }
@@ -186,10 +228,25 @@ int calculate_score(int board[BOARD_WIDTH][BOARD_HEIGHT])
         // 連鎖チェック
         if (is_chained)
         {
+            // スコア計算
+            // 色数計算
+            int color = 0;
+            for (bool is_color : colors)
+                if (is_color)
+                    color++;
+
+            // スコア計算
+            int bonus = (get_chain_score(chain) + connected_bonus + get_multiple_color_score(color));
+            if (bonus == 0)
+                bonus++;
+            score += vanish_puyo * 10 * bonus;
+
+            // 次の連鎖準備
             chain++;
         }
         else
         {
+            // 連鎖がないので終了
             break;
         }
 

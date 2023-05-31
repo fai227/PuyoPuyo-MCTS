@@ -21,6 +21,7 @@ const long long SECOND_INFINITY = 100000000000;
 const long long SIMULATION_INFINITY = 1000000000;
 const long long SURVIVAL_REWARD = 10000000;
 
+#include "score.cpp"
 #include "utility.cpp"
 #include "node.cpp"
 
@@ -149,10 +150,8 @@ void MCTS()
             // ゲーム終了判定になるまで繰り返す
             while (!simulation_node->gameover)
             {
-                // おじゃま
-                int garbage = 0;
-                if (turn < garbages.size())
-                    garbage = garbages.at(turn);
+                // おじゃま（推測できる幅を超えた場合は頭から再使用するように）
+                int garbage = garbages.at(turn % garbages.size());
 
                 // 全ての手を展開する
                 vector<Node *> top_moves;
