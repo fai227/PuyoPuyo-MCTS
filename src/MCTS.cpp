@@ -16,13 +16,15 @@ const int BOARD_HEIGHT = 13;
 const int BOARD_WIDTH = 6;
 const int ACTION_LENGTH = 22;
 
+const int LINE_CLEAR_PER_ACTION = 1;
+const int TETRIS_GAMEOVER_LINE = 25;
+
 const long long FIRST_INFINITY = 10000000000000;
 const long long SECOND_INFINITY = 100000000000;
 const long long SIMULATION_INFINITY = 1000000000;
 const long long SURVIVAL_REWARD = 10000000;
 
 #include "node.cpp"
-#include "score.cpp"
 #include "utility.cpp"
 
 // グローバル変数
@@ -277,13 +279,13 @@ int main(int argc, char *argv[])
     top_node->set_as_root(original_board, tetris_height);
 
     top_node->board[0][10] = 2;
-    show_board(top_node->board);
+    Node::show_board(top_node->board);
 
-    drop_puyos(top_node->board);
-    show_board(top_node->board);
+    Node::drop_puyos(top_node->board);
+    Node::show_board(top_node->board);
 
-    calculate_score(top_node);
-    show_board(top_node->board);
+    Node::calculate_score(top_node);
+    Node::show_board(top_node->board);
 
     cout << top_node->score;
 
