@@ -47,3 +47,11 @@ int get_connected_score(int number_of_connected_puyos)
     }
     return connected_scores[number];
 }
+
+int convert_garbage_to_line(int garbage)
+{
+}
+
+int convert_line_to_garbage(int line)
+{
+}

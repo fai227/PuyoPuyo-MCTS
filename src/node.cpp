@@ -55,6 +55,17 @@ public:
         // 連鎖計算
         calculate_score(this);
 
+        // おじゃま計算
+        int attack_garbage = score / 70;
+        garbage -= attack_garbage;
+
+        // 相手に攻撃が行われる時
+        if (garbage < 0)
+        {
+
+            garbage = 0;
+        }
+
         // ゲームオーバー判定
         gameover = board[2][11] != 0;
 
