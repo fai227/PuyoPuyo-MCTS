@@ -18,6 +18,7 @@ const int ACTION_LENGTH = 22;
 
 const int LINE_CLEAR_PER_ACTION = 1;
 const int TETRIS_GAMEOVER_LINE = 25;
+const int MAX_SIMULATION_TURN = 100;
 
 const long long FIRST_INFINITY = 10000000000000;
 const long long SECOND_INFINITY = 100000000000;
@@ -224,6 +225,10 @@ void MCTS()
                 // ランダム選択
                 Node *rand_node = top_moves[get_random_action(mt)];
 
+                // 計算回数の最大を超えた場合は終了
+                if (turn >= MAX_SIMULATION_TURN)
+                    break;
+
                 // 1手進める
                 simulation_node = rand_node;
                 turn++;
@@ -232,7 +237,7 @@ void MCTS()
             // 勝っている時は正の評価，負けている時は負の評価
             simulation_scores[i] += simulation_node->win ? SIMULATION_INFINITY : -SIMULATION_INFINITY;
 
-            // どれだけ生き延びたか得点化（100手で勝利と同じ扱い，必要手数以下なら計算しない）
+            // どれだけ生き延びたか得点化（100以上で勝利と同じ扱い，必要手数以下なら計算しない）
             int survived_turns = (turn - required_survival_steps);
             if (survived_turns > 0)
             {
@@ -265,7 +270,7 @@ void MCTS()
 
 int main(int argc, char *argv[])
 {
-    /**
+
     // 引数をパースする
     // parse_arguments(argc, argv);
 
@@ -273,8 +278,8 @@ int main(int argc, char *argv[])
     garbages.push_back(2);
 
     MCTS();
-    */
 
+    /**
     Node *top_node = new Node();
     top_node->set_as_root(original_board, tetris_height);
 
@@ -288,6 +293,7 @@ int main(int argc, char *argv[])
     Node::show_board(top_node->board);
 
     cout << top_node->score;
+    */
 
     // 正常終了
     return 0;
