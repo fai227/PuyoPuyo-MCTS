@@ -2,7 +2,7 @@
 cd "/Users/hayat/Documents/GitHub/PuyoPuyo-MCTS/src/"
 
 # コンパイル
-clang++ MCTS.cpp -o ../MCTS -std=c++14
+clang++ MCTS.cpp -o ../MCTS -std=c++14 -O3
 
 # ディレクトリを一つ上に移動
 cd ../
