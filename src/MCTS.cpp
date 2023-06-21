@@ -1,3 +1,5 @@
+#include "constant.cpp"
+
 #include <iostream> //入出力
 #include <chrono>   // 時間計測
 #include <stdlib.h> // 文字数値変換
@@ -10,23 +12,6 @@ using namespace std;
 // 乱数
 random_device rd;
 mt19937 mt(rd());
-
-// 定数
-const int BOARD_HEIGHT = 13;
-const int BOARD_WIDTH = 6;
-const int ACTION_LENGTH = 22;
-
-const int LINE_CLEAR_PER_ACTION = 1;
-const int TETRIS_GAMEOVER_LINE = 25;
-const int MAX_SIMULATION_TURN = 100;
-
-const long long FIRST_INFINITY = 10000000000000;
-const long long SECOND_INFINITY = 100000000000;
-const long long SIMULATION_INFINITY = 1000000000;
-const long long SURVIVAL_REWARD = 10000000;
-
-#include "node.cpp"
-#include "utility.cpp"
 
 // グローバル変数
 int mcts_duration_ms = 1000;
@@ -45,6 +30,10 @@ int next_next_puyos[2] = {1, 1};
 int tetris_height = 15;
 vector<int> garbages;
 int action_votes[ACTION_LENGTH];
+
+#include "node.cpp"
+#include "state.cpp"
+#include "utility.cpp"
 
 void parse_arguments(int argc, char *argv[])
 {
@@ -86,186 +75,35 @@ void parse_arguments(int argc, char *argv[])
 
 void MCTS()
 {
-    // 探索開始ノード設定
-    Node *top_node = new Node();
-    top_node->set_as_root(original_board, tetris_height);
+    // ルートノードを生成
+    Node *root_node = new Node();
+    root_node->set_as_root(original_board, tetris_height);
 
-    // 2手目以降のシミュレーション対象になるリスト
-    vector<Node *> simulation_nodes;
+    // ルート状態生成
+    State *root_state = new State();
 
-    // 乱数生成用
-    uniform_int_distribution<int> get_random_action(0, top_priority_moves - 1);
-    uniform_int_distribution<int> get_random_puyo(1, 4);
-
-    // 得点計算用のリストを0で初期化
-    long long action_scores[ACTION_LENGTH] = {0};
-
-    // 1手目を展開
-    for (int first_action = 0; first_action < ACTION_LENGTH; first_action++)
-    {
-        Node *e1 = new Node();
-        bool can_place_first_action = e1->set_as_child(top_node, first_action, garbages.at(0), next_puyos);
-        e1->top_action = first_action;
-
-        // 置けない場合は探索しない
-        if (!can_place_first_action)
-        {
-            action_scores[first_action] = FIRST_INFINITY;
-            continue;
-        }
-
-        // 終了判定
-        if (e1->gameover)
-        {
-            // 勝っている時は正の評価，負けている時は負の評価
-            action_scores[first_action] = e1->win ? FIRST_INFINITY : -FIRST_INFINITY;
-            continue;
-        }
-
-        // 2手目を展開
-        for (int second_action = 0; second_action < ACTION_LENGTH; second_action++)
-        {
-            Node *e2 = new Node();
-            bool can_place_second_action = e2->set_as_child(e1, second_action, garbages.at(1), next_next_puyos);
-
-            // 置けない場合は探索しない
-            if (!can_place_second_action)
-            {
-                action_scores[first_action] = SECOND_INFINITY;
-                continue;
-            }
-
-            // 終了判定
-            if (e2->gameover)
-            {
-                // 勝っている時は正の評価，負けている時は負の評価
-                action_scores[first_action] = e1->win ? SECOND_INFINITY : -SECOND_INFINITY;
-                continue;
-            }
-
-            // 探索キューに追加
-            simulation_nodes.push_back(e2);
-        }
-    }
-
-    // 平均計算用の得点リストを0で初期化
-    long long simulation_scores[simulation_nodes.size()];
-    for (int i = 0; i < simulation_nodes.size(); i++)
-        simulation_scores[i] = 0;
-
-    // 時間の限り繰り返す
+    // 時間がある限り探索を行う
     int counter;
     chrono::steady_clock::time_point start_time = chrono::steady_clock::now();
     for (counter = 0; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
     {
-        for (int i = 0; i < simulation_nodes.size(); i++)
+        // ----- 選択 -----
+        State *current_state = root_state;
+        // シミュレーションが行われていないノードが現れるまで，下へ潜っていく
+        while (!current_state->has_unsearched_node())
         {
-            Node *simulation_node = simulation_nodes[i];
-            long long score = 0;
-            int turn = 2;
-
-            // ゲーム終了判定になるまで繰り返す
-            while (!simulation_node->gameover)
-            {
-                // おじゃま（推測できる幅を超えた場合は頭から再使用するように）
-                int garbage = garbages.at(turn % garbages.size());
-
-                // 全ての手を展開する
-                vector<Node *> top_moves;
-                for (int action = 0; action < ACTION_LENGTH; action++)
-                {
-                    // ランダムなぷよの生成
-                    int random_puyo[2] = {get_random_puyo(mt), get_random_puyo(mt)};
-
-                    // 手を置く
-                    Node *next_move = new Node();
-                    bool can_place = next_move->set_as_child(simulation_node, action, garbage, random_puyo);
-
-                    // 置けない場合は探索しない
-                    if (!can_place)
-                    {
-                        continue;
-                    }
-
-                    // 最善手なら残す
-                    // リストが満杯のとき
-                    int value = next_move->value;
-                    bool need_to_delete_last_element = false;
-
-                    if (top_moves.size() >= top_priority_moves)
-                    {
-                        // ランキングの最後より小さい場合はリストに入れずに継続
-                        if (top_moves.back()->value > value)
-                        {
-                            continue;
-                        }
-
-                        need_to_delete_last_element = true;
-                    }
-
-                    // 前からチェックしていき小さい値が存在する場合はその前に挿入
-                    vector<Node *>::iterator it = top_moves.begin();
-                    while (it != top_moves.end())
-                    {
-                        if ((*it)->value < value)
-                        {
-                            break;
-                        }
-                        ++it;
-                    }
-                    top_moves.insert(it, next_move);
-
-                    if (need_to_delete_last_element)
-                    {
-                        // 最後尾を削除
-                        top_moves.erase(top_moves.end() - 1);
-                    }
-                }
-
-                // ランダム選択
-                Node *rand_node = top_moves[get_random_action(mt)];
-
-                // 計算回数の最大を超えた場合は終了
-                if (turn >= MAX_SIMULATION_TURN)
-                    break;
-
-                // 1手進める
-                simulation_node = rand_node;
-                turn++;
-            }
-
-            // 勝っている時は正の評価，負けている時は負の評価
-            simulation_scores[i] += simulation_node->win ? SIMULATION_INFINITY : -SIMULATION_INFINITY;
-
-            // どれだけ生き延びたか得点化（100以上で勝利と同じ扱い，必要手数以下なら計算しない）
-            int survived_turns = (turn - required_survival_steps);
-            if (survived_turns > 0)
-            {
-                simulation_scores[i] += survived_turns * SURVIVAL_REWARD;
-            }
-
-            // スコアを登録
-            simulation_scores[i] += score;
+            // UCT値を参照して次に進む
+            current_state = current_state->get_max_uct_state();
         }
+
+        // ----- 探索 -----
+        current_state->expand();
+
+        // ----- シミュレーション&バックプロパゲーション -----
+        current_state->simulate_and_backpropagate();
     }
 
-    // シミュレーションの得点を計算し反映する
-    for (int i = 0; i < simulation_nodes.size(); i++)
-    {
-        Node *simulation_node = simulation_nodes[i];
-        int action = simulation_node->top_action;
-
-        // シミュレーションの探索結果を平均してスコアに登録
-        action_scores[action] = simulation_scores[i] / counter;
-    }
-
-    // スコアを表示
-    for (int i = 0; i < ACTION_LENGTH; i++)
-    {
-        cout << action_scores[i];
-        cout << "\n";
-    }
-    cout << counter << " times calculated";
+    cout << counter;
 }
 
 int main(int argc, char *argv[])
@@ -274,8 +112,8 @@ int main(int argc, char *argv[])
     // 引数をパースする
     // parse_arguments(argc, argv);
 
-    garbages.push_back(1);
-    garbages.push_back(2);
+    // garbages.push_back(1);
+    // garbages.push_back(2);
 
     MCTS();
 

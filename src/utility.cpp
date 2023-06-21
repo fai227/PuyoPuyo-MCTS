@@ -1,3 +1,5 @@
+#pragma once
+
 int ctoi(char c)
 {
     return c - '0';
