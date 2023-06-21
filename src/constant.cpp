@@ -4,6 +4,7 @@ const int BOARD_HEIGHT = 13;
 const int BOARD_WIDTH = 6;
 const int ACTION_LENGTH = 22;
 
+const int REQUIRED_SURVIVAL_STEPS = 20;
 const int LINE_CLEAR_PER_ACTION = 1;
 const int TETRIS_GAMEOVER_LINE = 25;
 

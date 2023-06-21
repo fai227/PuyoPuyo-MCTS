@@ -1,14 +1,19 @@
 #pragma once
 
+#include <iostream>
+#include <vector>
+#include <utility>
 #include <unistd.h>
 #include "constant.cpp"
+
+using namespace std;
 
 class Node
 {
 public:
     // 状態
     int board[BOARD_WIDTH][BOARD_HEIGHT]; // 現在の盤面
-    int first_height[BOARD_WIDTH];        // 最初の高さ
+    int first_heights[BOARD_WIDTH];       // 最初の高さ
 
     // どの状態でも持つ変数
     int tetris_height; // 相手の高さ
@@ -53,6 +58,16 @@ public:
 
     void copy(Node *original)
     {
+        copy_board(original->board, this->board);
+
+        this->tetris_height = original->tetris_height;
+        this->garbage = original->garbage;
+
+        this->puyos[0] = original->puyos[0];
+        this->puyos[1] = original->puyos[1];
+        this->top_action = original->top_action;
+        this->action = original->action;
+        this->score = 0;
     }
 
     // ぷよを置き，連鎖計算，スコア計算，おじゃま計算を全て行う
