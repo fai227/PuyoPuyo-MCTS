@@ -23,6 +23,20 @@ private:
     vector<State *> child_states;
 
 public:
+    State()
+    {
+        // 探索可能かチェック
+        for (int i = 0; i < ACTION_LENGTH; i++)
+        {
+            // 置けるかチェック
+            if (!node->can_place(i))
+            {
+                continue;
+            }
+            unsearched_action.push_back(i);
+        }
+    }
+
     void set_as_root(Node *node)
     {
         this->node = node;

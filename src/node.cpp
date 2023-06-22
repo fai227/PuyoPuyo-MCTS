@@ -4,6 +4,7 @@
 #include <vector>
 #include <utility>
 #include <unistd.h>
+
 #include "constant.cpp"
 
 using namespace std;
@@ -425,14 +426,14 @@ public:
     {
         if (chain >= 19)
         {
-            return chain_scores[18];
+            return CHAIN_SCORES[18];
         }
-        return chain_scores[chain - 1];
+        return CHAIN_SCORES[chain - 1];
     }
 
     static int get_multiple_color_score(int number_of_color)
     {
-        return multiple_color_scores[number_of_color - 1];
+        return MULTIPLE_COLOR_SCORES[number_of_color - 1];
     }
 
     static int get_connected_score(int number_of_connected_puyos)
@@ -440,14 +441,36 @@ public:
         int number = number_of_connected_puyos - 4;
         if (number >= 8)
         {
-            return connected_scores[7];
+            return CONNECTED_SCORES[7];
         }
-        return connected_scores[number];
+        return CONNECTED_SCORES[number];
     }
 
     static int convert_garbage_to_line(int garbage)
     {
-        return garbage / 2;
+        int line = 0;
+        int score = garbage * 70;
+
+        while (score >= GARBAGE_TO_LINE_CONVERSION_SCORES[0])
+        {
+            for (int i = 1; i < 10; i++)
+            {
+                if (GARBAGE_TO_LINE_CONVERSION_SCORES[i] > score)
+                {
+                    score -= GARBAGE_TO_LINE_CONVERSION_SCORES[i - 1];
+                    line += i;
+                    break;
+                }
+                else if (i == 9)
+                {
+                    score -= GARBAGE_TO_LINE_CONVERSION_SCORES[9];
+                    line += 10;
+                    break;
+                }
+            }
+        }
+
+        return line;
     }
 
     static int convert_line_to_garbage(int line)

@@ -1,18 +1,16 @@
 #include "constant.cpp"
+#include "node.cpp"
+#include "state.cpp"
+#include "utility.cpp"
 
-#include <iostream> //å…¥å‡ºåŠ›
-#include <chrono>   // æ™‚é–“è¨ˆæ¸¬
-#include <stdlib.h> // æ–‡å­—æ•°å€¤å¤‰æ›
-#include <vector>   // å¯å¤‰è¶…é…åˆ—
-#include <random>   // ãƒ©ãƒ³ãƒ€ãƒ 
+#include <iostream> //“üo—Í
+#include <chrono>   // ŠÔŒv‘ª
+#include <stdlib.h> // •¶š”’l•ÏŠ·
+#include <vector>   // ‰Â•Ï’´”z—ñ
 
 using namespace std;
 
-// ä¹±æ•°
-random_device rd;
-mt19937 mt(rd());
-
-// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
+// ƒOƒ[ƒoƒ‹•Ï”
 int mcts_duration_ms = 1000;
 int original_board[BOARD_WIDTH][BOARD_HEIGHT] = {
     {1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -26,18 +24,13 @@ int next_puyos[2] = {2, 2};
 int next_next_puyos[2] = {1, 1};
 int tetris_height = 15;
 vector<int> garbages;
-int action_votes[ACTION_LENGTH];
-
-#include "node.cpp"
-#include "state.cpp"
-#include "utility.cpp"
 
 void parse_arguments(int argc, char *argv[])
 {
-    // è¨ˆç®—æ™‚é–“
+    // ŒvZŠÔ
     mcts_duration_ms = atoi(argv[1]);
 
-    // ç›¤é¢
+    // ”Õ–Ê
     for (int x = 0; x < BOARD_WIDTH; x++)
     {
         for (int y = 0; y < BOARD_HEIGHT; y++)
@@ -46,18 +39,18 @@ void parse_arguments(int argc, char *argv[])
         }
     }
 
-    // ãƒã‚¯ã‚¹ãƒˆ
+    // ƒlƒNƒXƒg
     next_puyos[0] = ctoi(argv[7][0]);
     next_puyos[1] = ctoi(argv[8][0]);
 
-    // ãƒã‚¯ãƒã‚¯
+    // ƒlƒNƒlƒN
     next_next_puyos[0] = ctoi(argv[10][0]);
     next_next_puyos[1] = ctoi(argv[11][0]);
 
-    // ãƒ†ãƒˆãƒªã‚¹ã®é«˜ã•
+    // ƒeƒgƒŠƒX‚Ì‚‚³
     tetris_height = atoi(argv[12]);
 
-    // ãŠã˜ã‚ƒã¾è¨ˆç®—
+    // ‚¨‚¶‚á‚ÜŒvZ
     for (int p = 13; p < argc; p++)
     {
         garbages.push_back(atoi(argv[p]));
@@ -66,44 +59,44 @@ void parse_arguments(int argc, char *argv[])
 
 void MCTS()
 {
-    // ãƒ«ãƒ¼ãƒˆãƒãƒ¼ãƒ‰ã‚’ç”Ÿæˆ
+    // ƒ‹[ƒgƒm[ƒh‚ğ¶¬
     Node *root_node = new Node();
     root_node->set_as_root(original_board, tetris_height);
 
-    // ãƒ«ãƒ¼ãƒˆçŠ¶æ…‹ç”Ÿæˆ
+    // ƒ‹[ƒgó‘Ô¶¬
     State *root_state = new State();
     root_state->set_as_root(root_node);
 
-    // æ™‚é–“ãŒã‚ã‚‹é™ã‚Šæ¢ç´¢ã‚’è¡Œã†
+    // ŠÔ‚ª‚ ‚éŒÀ‚è’Tõ‚ğs‚¤
     int counter;
     chrono::steady_clock::time_point start_time = chrono::steady_clock::now();
     for (counter = 0; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
     {
-        // ----- é¸æŠ -----
+        // ----- ‘I‘ğ -----
         State *selected_state = root_state->select();
 
-        // æ¢ç´¢ãŒã§ããªã„æ™‚ã¯ã‚¨ãƒ©ãƒ¼ã‚’åãã“ã¨ã«ã™ã‚‹
+        // ’Tõ‚ª‚Å‚«‚È‚¢‚ÍƒGƒ‰[‚ğ“f‚­‚±‚Æ‚É‚·‚é
         if (selected_state == nullptr)
         {
             cout << "Puyo Filled Error\n";
             break;
         }
 
-        // ----- æ¢ç´¢ -----
+        // ----- ’Tõ -----
         selected_state->expand();
 
-        // ----- ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³&ãƒãƒƒã‚¯ãƒ—ãƒ­ãƒ‘ã‚²ãƒ¼ã‚·ãƒ§ãƒ³ -----
+        // ----- ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“&ƒoƒbƒNƒvƒƒpƒQ[ƒVƒ‡ƒ“ -----
         selected_state->simulate_and_backpropagate();
     }
 
-    cout << "è¨ˆç®—çµ‚äº†\n"
-         << counter << "å›å®Ÿè¡Œã—ã¾ã—ãŸï¼";
+    cout << "\nŒvZI—¹\n"
+         << counter << "‰ñÀs‚µ‚Ü‚µ‚½D";
 }
 
 int main(int argc, char *argv[])
 {
 
-    // å¼•æ•°ã‚’ãƒ‘ãƒ¼ã‚¹ã™ã‚‹
+    // ˆø”‚ğƒp[ƒX‚·‚é
     // parse_arguments(argc, argv);
 
     // garbages.push_back(1);
@@ -127,6 +120,6 @@ int main(int argc, char *argv[])
     cout << top_node->score;
     */
 
-    // æ­£å¸¸çµ‚äº†
+    // ³íI—¹
     return 0;
 }
