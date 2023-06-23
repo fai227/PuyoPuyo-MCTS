@@ -1,16 +1,17 @@
 #include "constant.cpp"
+#include "game_state.cpp"
 #include "node.cpp"
-#include "state.cpp"
 #include "utility.cpp"
+#include "generator.cpp"
 
-#include <iostream> //“üo—Í
-#include <chrono>   // ŠÔŒv‘ª
-#include <stdlib.h> // •¶š”’l•ÏŠ·
-#include <vector>   // ‰Â•Ï’´”z—ñ
+#include <iostream> //å…¥å‡ºåŠ›
+#include <chrono>   // æ™‚é–“è¨ˆæ¸¬
+#include <stdlib.h> // æ–‡å­—æ•°å€¤å¤‰æ›
+#include <vector>   // å¯å¤‰è¶…é…åˆ—
 
 using namespace std;
 
-// ƒOƒ[ƒoƒ‹•Ï”
+// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
 int mcts_duration_ms = 1000;
 int original_board[BOARD_WIDTH][BOARD_HEIGHT] = {
     {1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -20,17 +21,14 @@ int original_board[BOARD_WIDTH][BOARD_HEIGHT] = {
     {4, 3, 4, 2, 3, 1, 5, 0, 0, 0, 0, 0, 0},
     {2, 4, 2, 3, 3, 1, 1, 5, 0, 0, 0, 0, 0},
 };
-int next_puyos[2] = {2, 2};
-int next_next_puyos[2] = {1, 1};
 int tetris_height = 15;
-vector<int> garbages;
 
 void parse_arguments(int argc, char *argv[])
 {
-    // ŒvZŠÔ
+    // calculation time
     mcts_duration_ms = atoi(argv[1]);
 
-    // ”Õ–Ê
+    // board
     for (int x = 0; x < BOARD_WIDTH; x++)
     {
         for (int y = 0; y < BOARD_HEIGHT; y++)
@@ -39,68 +37,84 @@ void parse_arguments(int argc, char *argv[])
         }
     }
 
-    // ƒlƒNƒXƒg
+    // next
+    int next_puyos[2];
     next_puyos[0] = ctoi(argv[7][0]);
     next_puyos[1] = ctoi(argv[8][0]);
 
-    // ƒlƒNƒlƒN
+    // next next
+    int next_next_puyos[2];
     next_next_puyos[0] = ctoi(argv[10][0]);
     next_next_puyos[1] = ctoi(argv[11][0]);
 
-    // ƒeƒgƒŠƒX‚Ì‚‚³
+    // height of tetris
     tetris_height = atoi(argv[12]);
 
-    // ‚¨‚¶‚á‚ÜŒvZ
+    // garbage calculation
+    vector<int> garbages;
     for (int p = 13; p < argc; p++)
     {
         garbages.push_back(atoi(argv[p]));
     }
+
+    // reset generator
+    reset_all(next_puyos, next_next_puyos, garbages);
 }
 
 void MCTS()
 {
-    // ƒ‹[ƒgƒm[ƒh‚ğ¶¬
+    // set original game state
+    Game_State *root_state = new Game_State();
+    root_state->set_as_root(original_board, tetris_height);
+
     Node *root_node = new Node();
-    root_node->set_as_root(original_board, tetris_height);
+    root_node->set_as_root(root_state);
 
-    // ƒ‹[ƒgó‘Ô¶¬
-    State *root_state = new State();
-    root_state->set_as_root(root_node);
-
-    // ŠÔ‚ª‚ ‚éŒÀ‚è’Tõ‚ğs‚¤
+    // search
     int counter;
     chrono::steady_clock::time_point start_time = chrono::steady_clock::now();
     for (counter = 0; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
     {
-        // ----- ‘I‘ğ -----
-        State *selected_state = root_state->select();
+        // ----- Selection -----
+        Node *selected_node = root_node->select();
 
-        // ’Tõ‚ª‚Å‚«‚È‚¢‚ÍƒGƒ‰[‚ğ“f‚­‚±‚Æ‚É‚·‚é
-        if (selected_state == nullptr)
+        // When no searchable node found
+        if (selected_node == nullptr)
         {
-            cout << "Puyo Filled Error\n";
+            cout << "Puyo Filled\n";
             break;
         }
 
-        // ----- ’Tõ -----
-        selected_state->expand();
+        // Display searching node
+        cout << "Node: " << selected_node->name << "\n";
 
-        // ----- ƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“&ƒoƒbƒNƒvƒƒpƒQ[ƒVƒ‡ƒ“ -----
-        selected_state->simulate_and_backpropagate();
+        // ----- æ¢ç´¢ -----
+        selected_node->expand();
+        cout << "â”£ Expanded\n";
+
+        // ----- ã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³&ãƒãƒƒã‚¯ãƒ—ãƒ­ãƒ‘ã‚²ãƒ¼ã‚·ãƒ§ãƒ³ -----
+        selected_node->simulate_and_backpropagate();
+        cout << "â”— Simulated and Backpropagated\n\n";
     }
 
-    cout << "\nŒvZI—¹\n"
-         << counter << "‰ñÀs‚µ‚Ü‚µ‚½D";
+    cout << "\nCalculation Ended\n"
+         << counter << " times";
 }
 
 int main(int argc, char *argv[])
 {
 
-    // ˆø”‚ğƒp[ƒX‚·‚é
+    // å¼•æ•°ã‚’ãƒ‘ãƒ¼ã‚¹ã™ã‚‹
     // parse_arguments(argc, argv);
 
-    // garbages.push_back(1);
-    // garbages.push_back(2);
+    vector<int> garbages;
+    garbages.push_back(1);
+    garbages.push_back(2);
+
+    int next_puyos[2] = {1, 1};
+    int next_next_puyos[2] = {2, 2};
+
+    reset_all(next_puyos, next_next_puyos, garbages);
 
     MCTS();
 
@@ -120,6 +134,6 @@ int main(int argc, char *argv[])
     cout << top_node->score;
     */
 
-    // ³íI—¹
+    // æ­£å¸¸çµ‚äº†
     return 0;
 }

@@ -1,481 +1,144 @@
 #pragma once
 
-#include <iostream>
+#include <cmath>
+#include <cstdlib>
 #include <vector>
-#include <utility>
-#include <unistd.h>
+#include <string>
 
+#include "game_state.cpp"
 #include "constant.cpp"
+#include "generator.cpp"
+
+const float c_constant = sqrt(2);
 
 using namespace std;
 
 class Node
 {
 public:
-    // 状態
-    int board[BOARD_WIDTH][BOARD_HEIGHT]; // 現在の盤面
-    int first_heights[BOARD_WIDTH];       // 最初の高さ
+    Node *parent_node;
+    Game_State *game_state;
+    vector<Node *> child_nodes;
 
-    // どの状態でも持つ変数
-    int tetris_height; // 相手の高さ
-    int garbage;       // 降ってくるおじゃまの量
+    string name;
+    int action;
+    int level;
 
-    // 子ノードのみが持つ変数
-    int puyos[2];   // 現在のぷよ
-    int top_action; // 最初のアクション
-    int action;     // 現在のアクション　
-    int score;      // 連鎖スコア
+    int n_state_trials;
+    float w_win_values;
+    float UCT_value;
 
-    // ゲームの状態を表す変数
-    bool gameover; // ゲームオーバーかどうか
-    bool win;      // 勝っているかどうか
+    bool searched;
 
-    // ルート設定
-    void set_as_root(int original_board[BOARD_WIDTH][BOARD_HEIGHT], int tetris_height)
+    Node()
     {
-        copy_board(original_board, this->board);
-
-        this->tetris_height = tetris_height;
-        this->garbage = 0;
+        searched = false;
+        n_state_trials = 0;
     }
 
-    // 子ノード設定
-    void set_as_child(Node *parent, int action, int garbage, int puyos[2])
+    void set_as_root(Game_State *game_state)
     {
-        copy_board(parent->board, this->board);
+        this->level = -1;
+        this->game_state = game_state;
+        this->name = "Root";
+    }
 
-        this->tetris_height = parent->tetris_height - LINE_CLEAR_PER_ACTION;
-        this->garbage = parent->garbage + garbage;
-
-        this->puyos[0] = puyos[0];
-        this->puyos[1] = puyos[1];
-        this->top_action = parent->top_action;
+    void set_as_child(Node *parent_node, int action)
+    {
+        this->parent_node = parent_node;
+        this->name = parent_node->name + "-" + to_string(action);
+        this->level = parent_node->level + 1;
         this->action = action;
-        this->score = 0;
 
-        // シミュレート開始
-        simulate(action);
+        Game_State *game_state = new Game_State();
+        game_state->set_as_child(parent_node->game_state, action, get_garbage(level), get_puyo(level));
     }
 
-    void copy(Node *original)
+    Node *select()
     {
-        copy_board(original->board, this->board);
-
-        this->tetris_height = original->tetris_height;
-        this->garbage = original->garbage;
-
-        this->puyos[0] = original->puyos[0];
-        this->puyos[1] = original->puyos[1];
-        this->top_action = original->top_action;
-        this->action = original->action;
-        this->score = 0;
-    }
-
-    // ぷよを置き，連鎖計算，スコア計算，おじゃま計算を全て行う
-    void simulate(int action)
-    {
-        // ぷよの設置
-        place(action);
-
-        // 連鎖計算．スコア計算
-        calculate_score(this);
-
-        // おじゃま，ゲームオーバー判定等
-        simulate_garbage();
-    }
-
-    // ぷよを設置
-    void place(int action)
-    {
-        // 上向き設置
-        if (action < 6)
+        // When unsearched node found
+        if (!searched)
         {
-            int x = action;
-            int first_y = get_first_y(board, x);
-
-            // ぷよを置く
-            board[x][first_y] = puyos[0];
-            board[x][first_y + 1] = puyos[1];
-
-            return;
+            return this;
         }
 
-        // 下向き設置
-        if (action < 12)
+        // check from heighest uct in childs
+        for (Node *child_node : child_nodes)
         {
-            int x = action - 6;
-            int first_y = get_first_y(board, x);
-
-            // ぷよを置く
-            board[x][first_y + 1] = puyos[0];
-            board[x][first_y] = puyos[1];
-
-            return;
-        }
-        // 右向き設置
-        if (action < 17)
-        {
-            int first_x = action - 12;
-            int first_y = get_first_y(board, first_x);
-            int second_x = first_x + 1;
-            int second_y = get_first_y(board, second_x);
-
-            // ぷよを置く
-            board[first_x][first_y] = puyos[0];
-            board[second_x][second_y] = puyos[1];
-        }
-
-        // 左向き設置
-        int first_x = action - 17;
-        int first_y = get_first_y(board, first_x);
-        int second_x = first_x + 1;
-        int second_y = get_first_y(board, second_x);
-
-        // ぷよを置く
-        board[first_x][first_y] = puyos[1];
-        board[second_x][second_y] = puyos[0];
-    }
-
-    // おじゃま計算
-    void simulate_garbage()
-    {
-        // おじゃま計算
-        int attack_garbage = score / 70;
-        garbage -= attack_garbage;
-
-        // 相手に攻撃が行われる時
-        if (garbage < 0)
-        {
-            int attack_line = convert_garbage_to_line(-garbage);
-            tetris_height += attack_line;
-            garbage = 0;
-
-            // 勝利判定
-            if (tetris_height >= TETRIS_GAMEOVER_LINE)
+            Node *check_node = child_node->select();
+            if (check_node != nullptr)
             {
-                gameover = true;
-                win = true;
+                return check_node;
             }
         }
 
-        // 負け判定
-        if (board[2][11] != 0)
-        {
-            gameover = true;
-            win = false;
-        }
+        // no node fulfills
+        return nullptr;
     }
 
-    bool can_place(int action)
-    {
-
-        return true;
-    }
-
-#pragma region Static Methods
-    static void copy_board(int original_board[BOARD_WIDTH][BOARD_HEIGHT], int copied_board[BOARD_WIDTH][BOARD_HEIGHT])
-    {
-        for (int x = 0; x < BOARD_WIDTH; x++)
-        {
-            for (int y = 0; y < BOARD_HEIGHT; y++)
+            void expand()
             {
-                copied_board[x][y] = original_board[x][y];
-            }
-        }
-    }
-
-    static void show_board(int board[BOARD_WIDTH][BOARD_HEIGHT])
-    {
-        for (int y = BOARD_HEIGHT - 1; y >= 0; y--)
-        {
-            cout << "｜";
-            for (int x = 0; x < BOARD_WIDTH; x++)
-            {
-                switch (board[x][y])
+                // check all actions
+                for (int i = 0; i < ACTION_LENGTH; i++)
                 {
-                case 0:
-                    cout << "　";
-                    break;
-                case 1:
-                    cout << "🔴";
-                    break;
-                case 2:
-                    cout << "🟢";
-                    break;
-                case 3:
-                    cout << "🔵";
-                    break;
-                case 4:
-                    cout << "🟡";
-                    break;
-                case 5:
-                    cout << "🟤";
-                    break;
-                }
-            }
-            cout << "｜\n";
-        }
-        cout << "ーーーーーーーー\n\n";
-    }
-
-    static int get_first_y(int board[BOARD_WIDTH][BOARD_HEIGHT], int x)
-    {
-        int first_y;
-        for (first_y = 0; first_y < BOARD_HEIGHT; first_y++)
-        {
-            if (board[x][first_y] == 0)
-                break;
-        }
-
-        return first_y;
-    }
-
-    static void drop_puyos(int board[BOARD_WIDTH][BOARD_HEIGHT])
-    {
-        for (int x = 0; x < BOARD_WIDTH; x++)
-        {
-            int first_y = get_first_y(board, x);
-
-            for (int y = first_y; y < BOARD_HEIGHT; y++)
-            {
-                if (board[x][y] != 0)
-                {
-                    board[x][first_y] = board[x][y];
-                    board[x][y] = 0;
-                    first_y++;
-                }
-            }
-        }
-    }
-
-    static void calculate_score(Node *node)
-    {
-        int score = 0;
-        int chain = 1;
-
-        while (true)
-        {
-            // 連鎖計算用
-            bool is_chained = false;
-            bool colors[4] = {false};
-            int vanish_puyo = 0;
-            int connected_bonus = 0;
-
-            // つながりチェック
-            bool checked_board[BOARD_WIDTH][BOARD_HEIGHT] = {false}; // チェックしたかどうかを表す配列
-
-            for (int x = 0; x < BOARD_WIDTH; x++)
-            {
-                for (int y = 0; y < BOARD_HEIGHT; y++)
-                {
-                    // チェック済みの場合は飛ばす
-                    if (checked_board[x][y])
+                    // skip when cannot place
+                    if (!game_state->can_place(i))
                         continue;
 
-                    int check_point = 0;                 // 現在チェックしている場所
-                    int check_color = node->board[x][y]; // チェックする色
+                    // generate next node
+                    Node *next_node = new Node();
+                    next_node->set_as_child(this, i);
 
-                    // 空白かおじゃまなら飛ばす
-                    if (check_color == 0 || check_color == 5)
+                    // playout and calculate win value
+                    for (int i = 0; i < MCTS_RANDOM_TRIALS; i++)
                     {
-                        checked_board[x][y] = true;
-                        continue;
-                    }
-
-                    // チェック用キュー
-                    vector<pair<int, int>> check_queue;
-                    pair<int, int> current_position(x, y);
-                    check_queue.push_back(current_position);
-
-                    while (check_queue.size() > check_point)
-                    {
-                        pair<int, int> check_position = check_queue.at(check_point);
-                        check_point++;
-
-                        int check_x = check_position.first;
-                        int check_y = check_position.second;
-
-                        // チェック済みにして次を調べる
-                        checked_board[check_x][check_y] = true;
-
-                        // 右をチェックできるかチェック
-                        if (check_x < BOARD_WIDTH - 1)
-                        {
-                            if (!checked_board[check_x + 1][check_y])
-                            {
-                                if (node->board[check_x + 1][check_y] == check_color)
-                                {
-                                    pair<int, int> right_position(check_x + 1, check_y);
-                                    check_queue.push_back(right_position);
-                                }
-                            }
-                        }
-
-                        // 左をチェックできるかチェック
-                        if (check_x > 0)
-                        {
-                            if (!checked_board[check_x - 1][check_y])
-                            {
-                                if (node->board[check_x - 1][check_y] == check_color)
-                                {
-                                    pair<int, int> left_position(check_x - 1, check_y);
-                                    check_queue.push_back(left_position);
-                                }
-                            }
-                        }
-
-                        // 上をチェックできるかチェック
-                        if (check_y < BOARD_HEIGHT - 1)
-                        {
-                            if (!checked_board[check_x][check_y + 1])
-                            {
-                                if (node->board[check_x][check_y + 1] == check_color)
-                                {
-                                    pair<int, int> up_position(check_x, check_y + 1);
-                                    check_queue.push_back(up_position);
-                                }
-                            }
-                        }
-
-                        // 下をチェックできるかチェック
-                        if (check_y > 0)
-                        {
-                            if (!checked_board[check_x][check_y - 1])
-                            {
-                                if (node->board[check_x][check_y - 1] == check_color)
-                                {
-                                    pair<int, int> down_position(check_x, check_y - 1);
-                                    check_queue.push_back(down_position);
-                                }
-                            }
-                        }
-                    }
-
-                    // 4つ以上連結があった場合
-                    if (check_queue.size() >= 4)
-                    {
-                        // 連鎖計算用
-                        is_chained = true;
-                        colors[check_color - 1] = true;
-                        vanish_puyo += check_queue.size();
-                        connected_bonus += get_connected_score(check_queue.size());
-
-                        // ぷよを消す
-                        for (pair<int, int> check_position : check_queue)
-                        {
-                            int check_x = check_position.first;
-                            int check_y = check_position.second;
-
-                            node->board[check_x][check_y] = 0;
-
-                            // 周りのおじゃまを消す
-                            // 右
-                            if (check_x < BOARD_WIDTH - 1)
-                                if (node->board[check_x + 1][check_y] == 5)
-                                    node->board[check_x + 1][check_y] = 0;
-                            // 左
-                            if (check_x > 0)
-                                if (node->board[check_x - 1][check_y] == 5)
-                                    node->board[check_x - 1][check_y] = 0;
-                            // 上
-                            if (check_y < BOARD_HEIGHT - 1)
-                                if (node->board[check_x][check_y + 1] == 5)
-                                    node->board[check_x][check_y + 1] = 0;
-                            // 下
-                            if (check_y > 0)
-                                if (node->board[check_x][check_y - 1] == 5)
-                                    node->board[check_x][check_y - 1] = 0;
-                        }
+                        float win_value = playout(next_node);
                     }
                 }
+
+                searched = true;
             }
 
-            // 連鎖チェック
-            if (is_chained)
-            {
-                // スコア計算
-                // 色数計算
-                int color = 0;
-                for (bool is_color : colors)
-                    if (is_color)
-                        color++;
-
-                // スコア計算
-                int bonus = (get_chain_score(chain) + connected_bonus + get_multiple_color_score(color));
-                if (bonus == 0)
-                    bonus++;
-                score += vanish_puyo * 10 * bonus;
-
-                // 次の連鎖準備
-                chain++;
-            }
-            else
-            {
-                // 連鎖がないので終了
-                break;
-            }
-
-            // 全てのぷよを下に落とす
-            drop_puyos(node->board);
+        void simulate_and_backpropagate()
+        {
         }
 
-        node->score = score;
-    }
-
-    static int get_chain_score(int chain)
-    {
-        if (chain >= 19)
+        void recalculate_uct()
         {
-            return CHAIN_SCORES[18];
+            float win_rate = w_win_values / n_state_trials;
+            float unsearched_rate = c_constant * sqrt(log(parent_node->n_state_trials) / n_state_trials);
+
+            this->UCT_value = win_rate + unsearched_rate;
         }
-        return CHAIN_SCORES[chain - 1];
-    }
 
-    static int get_multiple_color_score(int number_of_color)
-    {
-        return MULTIPLE_COLOR_SCORES[number_of_color - 1];
-    }
-
-    static int get_connected_score(int number_of_connected_puyos)
-    {
-        int number = number_of_connected_puyos - 4;
-        if (number >= 8)
+        // defeat enemy = 1, endure desired turns = height of tetri / tetris deadline, lose = -1
+        static float playout(Node * node)
         {
-            return CONNECTED_SCORES[7];
-        }
-        return CONNECTED_SCORES[number];
-    }
+            Game_State *current_state = node->game_state;
 
-    static int convert_garbage_to_line(int garbage)
-    {
-        int line = 0;
-        int score = garbage * 70;
-
-        while (score >= GARBAGE_TO_LINE_CONVERSION_SCORES[0])
-        {
-            for (int i = 1; i < 10; i++)
+            int turn;
+            for (turn = 1; turn <= REQUIRED_SURVIVAL_STEPS && !current_state->gameover; turn++)
             {
-                if (GARBAGE_TO_LINE_CONVERSION_SCORES[i] > score)
+                // find placable action
+                int action = rand() % ACTION_LENGTH;
+                while (!current_state->can_place(action))
                 {
-                    score -= GARBAGE_TO_LINE_CONVERSION_SCORES[i - 1];
-                    line += i;
-                    break;
+                    action = rand() % ACTION_LENGTH;
                 }
-                else if (i == 9)
-                {
-                    score -= GARBAGE_TO_LINE_CONVERSION_SCORES[9];
-                    line += 10;
-                    break;
-                }
+
+                // simulate next turn
+                Game_State *new_state = new Game_State();
+                int current_turn = node->level + turn;
+                new_state->set_as_child(current_state, action, get_garbage(current_turn), get_puyo(current_turn));
+
+                current_state = new_state;
             }
+
+            if (current_state->gameover)
+            {
+                return current_state->win ? 1.0 : -1.0;
+            }
+
+            return current_state->tetris_height / TETRIS_GAMEOVER_LINE;
         }
-
-        return line;
-    }
-
-    static int convert_line_to_garbage(int line)
-    {
-        return 0;
-    }
-#pragma endregion
 };
