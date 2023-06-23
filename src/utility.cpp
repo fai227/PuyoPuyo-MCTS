@@ -22,6 +22,10 @@ void copy_board(int original_board[BOARD_WIDTH][BOARD_HEIGHT], int copied_board[
     {
         for (int y = 0; y < BOARD_HEIGHT; y++)
         {
+            if(copied_board[x][y] > 5)
+            {
+                int a = 0;
+            }
             copied_board[x][y] = original_board[x][y];
         }
     }

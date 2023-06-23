@@ -38,14 +38,10 @@ void parse_arguments(int argc, char *argv[])
     }
 
     // next
-    int next_puyos[2];
-    next_puyos[0] = ctoi(argv[7][0]);
-    next_puyos[1] = ctoi(argv[8][0]);
+    int next_puyo = (ctoi(argv[7][0]) << SHIFT) + ctoi(argv[8][0]);
 
     // next next
-    int next_next_puyos[2];
-    next_next_puyos[0] = ctoi(argv[10][0]);
-    next_next_puyos[1] = ctoi(argv[11][0]);
+    int next_next_puyo = (ctoi(argv[10][0]) << SHIFT) + ctoi(argv[11][0]);
 
     // height of tetris
     tetris_height = atoi(argv[12]);
@@ -58,7 +54,7 @@ void parse_arguments(int argc, char *argv[])
     }
 
     // reset generator
-    reset_all(next_puyos, next_next_puyos, garbages);
+    reset_all(next_puyo, next_next_puyo, garbages);
 }
 
 void MCTS()
@@ -71,9 +67,10 @@ void MCTS()
     root_node->set_as_root(root_state);
 
     // search
-    int counter;
+    int counter = 0;
     chrono::steady_clock::time_point start_time = chrono::steady_clock::now();
-    for (counter = 0; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
+     //for (counter = 0; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
+    while (true)
     {
         // ----- Selection -----
         Node *selected_node = root_node->select();
@@ -88,17 +85,23 @@ void MCTS()
         // Display searching node
         cout << "Node: " << selected_node->name << "\n";
 
-        // ----- 探索 -----
-        selected_node->expand();
-        cout << "┣ Expanded\n";
-
-        // ----- シミュレーション&バックプロパゲーション -----
-        selected_node->simulate_and_backpropagate();
-        cout << "┗ Simulated and Backpropagated\n\n";
+        // ----- Expand, Simulate and Backpropagate -----
+        selected_node->expand_and_simulate_and_backpropagate();
+        cout << "Simulated\n\n";
     }
 
     cout << "\nCalculation Ended\n"
-         << counter << " times";
+         << counter << " times\n\n";
+
+    int max_index = 0;
+    int max_uct = root_node->child_nodes.at(max_index)->UCT_value;
+    for(int i = 1; i < root_node->child_nodes.size(); i++) {
+        if(root_node->child_nodes.at(i)->UCT_value > max_uct) {
+            max_uct = root_node->child_nodes.at(i)->UCT_value;
+            max_index = i;
+        }
+    }
+    cout << "Best action is " << max_index << "\n with win rate :" << max_uct << "\n";
 }
 
 int main(int argc, char *argv[])
@@ -111,10 +114,10 @@ int main(int argc, char *argv[])
     garbages.push_back(1);
     garbages.push_back(2);
 
-    int next_puyos[2] = {1, 1};
-    int next_next_puyos[2] = {2, 2};
+    int next_puyo = ((rand() % 4 + 1) << SHIFT) + (rand() % 4 + 1);
+    int next_next_puyo = ((rand() % 4 + 1) << SHIFT) + (rand() % 4 + 1);
 
-    reset_all(next_puyos, next_next_puyos, garbages);
+    reset_all(next_puyo, next_next_puyo, garbages);
 
     MCTS();
 

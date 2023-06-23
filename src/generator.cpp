@@ -5,10 +5,10 @@
 
 using namespace std;
 
-vector<int *> puyo_list;
+vector<int> puyo_list;
 vector<int> garbage_list;
 
-void reset_all(int next[2], int next_next[2], vector<int> garbages)
+void reset_all(int next, int next_next, vector<int> garbages)
 {
     puyo_list.clear();
     garbage_list.clear();
@@ -24,28 +24,21 @@ void reset_all(int next[2], int next_next[2], vector<int> garbages)
 
 void reset_random()
 {
-    int *next = puyo_list.at(0);
-    int next_one = next[0];
-    int next_two = next[1];
-
-    int *next_next = puyo_list.at(1);
-    int next_next_one = next_next[0];
-    int next_next_two = next_next[1];
+    int next = puyo_list.at(0);
+    int next_next = puyo_list.at(1);
 
     puyo_list.clear();
 
-    int next_puyos[2] = {next_one, next_two};
-    int next_next_puyos[2] = {next_next_one, next_next_two};
-    puyo_list.push_back(next_puyos);
-    puyo_list.push_back(next_next_puyos);
+    puyo_list.push_back(next);
+    puyo_list.push_back(next_next);
 }
 
-int *get_puyo(int turn)
+int get_puyo(int turn)
 {
     // generate next puyos
-    while (turn > puyo_list.size())
+    while (turn >= puyo_list.size())
     {
-        int puyo[2] = {rand() % 4, rand() % 4};
+        int puyo = ((rand() % 4 + 1) << SHIFT) + (rand() % 4 + 1);
         puyo_list.push_back(puyo);
     }
     return puyo_list.at(turn);

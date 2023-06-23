@@ -15,13 +15,18 @@ public:
     int tetris_height;
     int garbage;
 
-    int puyos[2];
+    int puyo;
     int action;
     int score;
 
     bool gameover;
     bool win;
 #pragma endregion
+
+    Game_State()
+    {
+        gameover = false;
+    }
 
 #pragma region Methods
     void set_as_root(int original_board[BOARD_WIDTH][BOARD_HEIGHT], int tetris_height)
@@ -37,18 +42,21 @@ public:
         }
     }
 
-    void set_as_child(Game_State *parent, int action, int garbage, int puyos[2])
+    void set_as_child(Game_State *parent, int action, int garbage, int puyo)
     {
         copy_board(parent->board, this->board);
 
         this->tetris_height = parent->tetris_height - LINE_CLEAR_PER_ACTION;
         this->garbage = parent->garbage + garbage;
 
-        this->puyos[0] = puyos[0];
-        this->puyos[1] = puyos[1];
+        this->puyo = puyo;
 
         this->action = action;
         this->score = 0;
+
+        for(int x = 0; x < BOARD_WIDTH; x++) {
+            first_heights[x] = parent->first_heights[x];
+        }
 
         simulate();
     }
@@ -69,8 +77,8 @@ public:
             int x = action;
             int first_y = first_heights[x];
 
-            board[x][first_y] = puyos[0];
-            board[x][first_y + 1] = puyos[1];
+            board[x][first_y] = puyo >> SHIFT;
+            board[x][first_y + 1] = puyo & MASK;
 
             first_heights[x] += 2;
 
@@ -82,8 +90,8 @@ public:
             int x = action - 6;
             int first_y = first_heights[x];
 
-            board[x][first_y + 1] = puyos[0];
-            board[x][first_y] = puyos[1];
+            board[x][first_y + 1] = puyo >> SHIFT;
+            board[x][first_y] = puyo & MASK;
 
             first_heights[x] += 2;
 
@@ -98,11 +106,13 @@ public:
             int second_x = first_x + 1;
             int second_y = first_heights[second_x];
 
-            board[first_x][first_y] = puyos[0];
-            board[second_x][second_y] = puyos[1];
+            board[first_x][first_y] = puyo >> SHIFT;
+            board[second_x][second_y] = puyo & MASK;
 
             first_heights[first_x]++;
             first_heights[second_x]++;
+
+            return;
         }
 
         int first_x = action - 17;
@@ -111,8 +121,8 @@ public:
         int second_x = first_x + 1;
         int second_y = first_heights[second_x];
 
-        board[first_x][first_y] = puyos[1];
-        board[second_x][second_y] = puyos[0];
+        board[first_x][first_y] = puyo & MASK;
+        board[second_x][second_y] = puyo >> SHIFT;
 
         first_heights[first_x]++;
         first_heights[second_x]++;
