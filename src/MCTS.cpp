@@ -69,8 +69,8 @@ void MCTS()
     // search
     int counter = 0;
     chrono::steady_clock::time_point start_time = chrono::steady_clock::now();
-     //for (counter = 0; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
-    while (true)
+    for (counter = 0; chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start_time).count() < mcts_duration_ms; counter++)
+    // while (true)
     {
         // ----- Selection -----
         Node *selected_node = root_node->select();
@@ -83,18 +83,18 @@ void MCTS()
         }
 
         // Display searching node
-        cout << "Node: " << selected_node->name << "\n";
+        // cout << "Node: " << selected_node->name << "\n";
 
         // ----- Expand, Simulate and Backpropagate -----
         selected_node->expand_and_simulate_and_backpropagate();
-        cout << "Simulated\n\n";
+        // cout << "Simulated\n\n";
     }
 
     cout << "\nCalculation Ended\n"
          << counter << " times\n\n";
 
     int max_index = 0;
-    int max_uct = root_node->child_nodes.at(max_index)->UCT_value;
+    float max_uct = root_node->child_nodes.at(max_index)->UCT_value;
     for(int i = 1; i < root_node->child_nodes.size(); i++) {
         if(root_node->child_nodes.at(i)->UCT_value > max_uct) {
             max_uct = root_node->child_nodes.at(i)->UCT_value;
@@ -114,8 +114,8 @@ int main(int argc, char *argv[])
     garbages.push_back(1);
     garbages.push_back(2);
 
-    int next_puyo = ((rand() % 4 + 1) << SHIFT) + (rand() % 4 + 1);
-    int next_next_puyo = ((rand() % 4 + 1) << SHIFT) + (rand() % 4 + 1);
+    int next_puyo = (1 << SHIFT) + 1;
+    int next_next_puyo = (2 << SHIFT) + 2;
 
     reset_all(next_puyo, next_next_puyo, garbages);
 

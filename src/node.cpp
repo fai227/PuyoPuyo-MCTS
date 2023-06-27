@@ -76,13 +76,13 @@ public:
         // get the max node
         while(child_nodes.size() > 0) {
             // find highest
-            float max_index = 0;
+            int max_index = 0;
             float max_uct = child_nodes.at(max_index)->UCT_value;
 
             for(int i = 1; i < child_nodes.size(); i++) {
                 if(child_nodes.at(i)->UCT_value > max_uct) {
                     max_uct = child_nodes.at(i)->UCT_value;
-                    max_uct = i;
+                    max_index = i;
                 }
             }
 
@@ -123,13 +123,16 @@ public:
 
             // backpropagate until root
             Node *check_node = next_node;
-            while (check_node->parent_node != nullptr)
-            {
+            check_node->w_win_values += win_value;
+            check_node->n_node_trials += trial;
+
+            while(check_node->parent_node != nullptr) {
+                check_node = check_node->parent_node;
+
                 check_node->w_win_values += win_value;
                 check_node->n_node_trials += trial;
-
-                check_node = check_node->parent_node;
             }
+            
         }
 
         searched = true;
