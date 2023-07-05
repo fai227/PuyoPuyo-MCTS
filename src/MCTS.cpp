@@ -121,22 +121,6 @@ int main(int argc, char *argv[])
 
     MCTS();
 
-    /**
-    Node *top_node = new Node();
-    top_node->set_as_root(original_board, tetris_height);
-
-    top_node->board[0][10] = 2;
-    Node::show_board(top_node->board);
-
-    Node::drop_puyos(top_node->board);
-    Node::show_board(top_node->board);
-
-    Node::calculate_score(top_node);
-    Node::show_board(top_node->board);
-
-    cout << top_node->score;
-    */
-
     // 正常終了
     return 0;
 }
